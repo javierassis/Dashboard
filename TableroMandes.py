@@ -3,53 +3,44 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
 
-# Fecha base: hoy
-fecha_hoy = datetime(2025, 7, 22)
+# Datos ejemplo
+nombres = ['Walter', 'Sebastian', 'Katia', 'Miguel I.', 'Maite']
+hoy = datetime(2025, 7, 22)
+fecha_limite = hoy + timedelta(days=45)  # 45 días desde hoy
 
-# Duración del plazo en días
-plazo_dias = 45
+# Supongamos que 'progreso' es % completado, donde 1 = 100% completado
+# Por ejemplo, valores entre 0 y 1
+progresos = [0.8, 0.4, 0.2, 0.6, 0.1]
 
-# Lista de personas con fecha de inicio (ejemplo: hoy para todos)
-personas = [
-    {'nombre': 'Maite', 'fecha_inicio': fecha_hoy},
-    {'nombre': 'Miguel I.', 'fecha_inicio': fecha_hoy},
-    {'nombre': 'Katia', 'fecha_inicio': fecha_hoy},
-    {'nombre': 'Sebastian', 'fecha_inicio': fecha_hoy},
-    {'nombre': 'Walter', 'fecha_inicio': fecha_hoy},
-]
+df = pd.DataFrame({
+    'Nombre': nombres,
+    'Progreso': progresos
+})
 
-# Función para calcular progreso basado en días transcurridos
-def calcular_progreso(fecha_inicio, fecha_hoy, plazo_dias):
-    dias_transcurridos = (fecha_hoy - fecha_inicio).days
-    progreso = min(max(dias_transcurridos / plazo_dias * 100, 0), 100)
-    return progreso
-
-# Crear DataFrame con progreso calculado para cada persona
-data = []
-for p in personas:
-    progreso = calcular_progreso(p['fecha_inicio'], fecha_hoy, plazo_dias)
-    data.append({'Persona': p['nombre'], 'Progreso': progreso})
-
-df = pd.DataFrame(data)
-
-# Mostrar fecha límite para completar
-fecha_limite = fecha_hoy + timedelta(days=plazo_dias)
+st.title("Mandes")
 st.write(f"📅 Fecha límite para cumplir: {fecha_limite.strftime('%Y-%m-%d')}")
 
-# Crear gráfico de barras horizontal con color basado en progreso
 fig = px.bar(
     df,
+    y='Nombre',
     x='Progreso',
-    y='Persona',
     orientation='h',
     color='Progreso',
-    color_continuous_scale=['red', 'green'],
-    range_color=[0, 100],
-    labels={'Progreso': 'Progreso (%)', 'Persona': 'Nombre'}
+    color_continuous_scale=['red', 'green'],  # rojo=0, verde=1
+    range_x=[0, 1],
+    labels={'Progreso': 'Progreso (%)', 'Nombre': 'Nombre'},
+    text=df['Progreso'].apply(lambda x: f"{int(x*100)}%")
 )
 
-fig.update_layout(coloraxis_colorbar=dict(title="Progreso %"))
+fig.update_traces(textposition='inside', insidetextanchor='middle')
+fig.update_layout(
+    coloraxis_colorbar=dict(title="Progreso %"),
+    yaxis=dict(autorange="reversed"),  # Para que el primer nombre esté arriba
+    plot_bgcolor='white',  # Fondo blanco
+    paper_bgcolor='white',
+    margin=dict(l=100, r=40, t=40, b=40)
+)
 
-st.plotly_chart(fig)
+st.plotly_chart(fig, use_container_width=True)
 
 
