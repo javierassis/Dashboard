@@ -1,57 +1,55 @@
 import streamlit as st
-import json
-import os
+import pandas as pd
+import plotly.express as px
 from datetime import datetime, timedelta
 
-# Lista de personas
+# Fecha base: hoy
+fecha_hoy = datetime(2025, 7, 22)
+
+# Duración del plazo en días
+plazo_dias = 45
+
+# Lista de personas con fecha de inicio (ejemplo: hoy para todos)
 personas = [
-    "Maite", "Miguel I.", "Katia", "Sebastian", "Walter", "Gabriela", "Nemesys", "Miguel G", "Julián",
-    "Deivis 1", "Deivis 2", "Marcos", "Cristian Estupiñan", "Ermes", "Maria Judith", "Yuli Ramon", "Laura", "Erick"
+    {'nombre': 'Maite', 'fecha_inicio': fecha_hoy},
+    {'nombre': 'Miguel I.', 'fecha_inicio': fecha_hoy},
+    {'nombre': 'Katia', 'fecha_inicio': fecha_hoy},
+    {'nombre': 'Sebastian', 'fecha_inicio': fecha_hoy},
+    {'nombre': 'Walter', 'fecha_inicio': fecha_hoy},
 ]
 
-# Archivo donde se guarda el progreso
-archivo_progreso = "progreso.json"
+# Función para calcular progreso basado en días transcurridos
+def calcular_progreso(fecha_inicio, fecha_hoy, plazo_dias):
+    dias_transcurridos = (fecha_hoy - fecha_inicio).days
+    progreso = min(max(dias_transcurridos / plazo_dias * 100, 0), 100)
+    return progreso
 
-# Fecha límite para cada persona (puedes personalizar)
-fecha_inicio = datetime(2024, 6, 1)
-dias_maximos = 45
-fecha_limite = fecha_inicio + timedelta(days=dias_maximos)
+# Crear DataFrame con progreso calculado para cada persona
+data = []
+for p in personas:
+    progreso = calcular_progreso(p['fecha_inicio'], fecha_hoy, plazo_dias)
+    data.append({'Persona': p['nombre'], 'Progreso': progreso})
 
-# Inicializar datos si no existe
-if not os.path.exists(archivo_progreso):
-    progreso = {persona: {"cumplido": False, "fecha": None} for persona in personas}
-    with open(archivo_progreso, "w") as f:
-        json.dump(progreso, f)
-else:
-    with open(archivo_progreso, "r") as f:
-        progreso = json.load(f)
+df = pd.DataFrame(data)
 
-# Título
-st.title("📊 Tablero de Progreso por Persona")
+# Mostrar fecha límite para completar
+fecha_limite = fecha_hoy + timedelta(days=plazo_dias)
+st.write(f"📅 Fecha límite para cumplir: {fecha_limite.strftime('%Y-%m-%d')}")
 
-# Mostrar fecha y hora actual
-ahora = datetime.now()
-st.write("🕒 Fecha y hora actual:", ahora.strftime("%Y-%m-%d %H:%M:%S"))
-st.write("🎯 Fecha límite para cumplir:", fecha_limite.strftime("%Y-%m-%d"))
+# Crear gráfico de barras horizontal con color basado en progreso
+fig = px.bar(
+    df,
+    x='Progreso',
+    y='Persona',
+    orientation='h',
+    color='Progreso',
+    color_continuous_scale=['red', 'green'],
+    range_color=[0, 100],
+    labels={'Progreso': 'Progreso (%)', 'Persona': 'Nombre'}
+)
 
-# Mostrar progreso con barras
-for persona in personas:
-    datos = progreso.get(persona, {"cumplido": False, "fecha": None})
-    cumplido = datos["cumplido"]
+fig.update_layout(coloraxis_colorbar=dict(title="Progreso %"))
 
-    # Días restantes o de atraso
-    if datos["fecha"]:
-        fecha_cumplimiento = datetime.strptime(datos["fecha"], "%Y-%m-%d %H:%M:%S")
-        delta = (fecha_cumplimiento - fecha_inicio).days
-        dias_info = f"Cumplido en {delta} días"
-    else:
-        dias_resto = (fecha_limite - ahora).days
-        dias_info = f"⏳ Quedan {dias_resto} días" if dias_resto >= 0 else f"❌ {abs(dias_resto)} días de atraso"
-
-    progreso_barra = 100 if cumplido else 0
-    color = "green" if cumplido else "red"
-
-    st.write(f"**{persona}** ({dias_info})")
-    st.progress(progreso_barra / 100)
+st.plotly_chart(fig)
 
 
