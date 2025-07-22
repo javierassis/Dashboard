@@ -2,9 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
-import time
 
-# Estilo personalizado con fondo azul claro
+# Estilo de fondo
 st.markdown("""
     <style>
     .stApp {
@@ -13,7 +12,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Datos
+# Fechas
+inicio = datetime(2025, 7, 22)
+fecha_limite = datetime(2025, 9, 5)
+hoy = datetime.now()
+dias_totales = (fecha_limite - inicio).days + 1
+dias_transcurridos = (hoy - inicio).days + 1
+progreso_general = max(0, min(1, dias_transcurridos / dias_totales))
+dias_restantes = (fecha_limite - hoy).days
+
+# Lista de nombres
 nombres = [
     "Maite", "Miguel I.", "Katia", "Sebastian", "Walter",
     "Gabriela", "Nemesys", "Miguel G", "Julián", "Deivis x 2",
@@ -21,28 +29,26 @@ nombres = [
     "Yuli Ramon", "Laura", "Erick"
 ]
 
-dias_atraso = [40, 10, 30, 5, 0, 15, 45, 20, 37, 7, 12, 22, 8, 16, 25, 14, 33]
-plazo_dias = 45
-hoy = datetime.now()
-fecha_limite = hoy + timedelta(days=plazo_dias)
-
-# Cálculo de progreso (limitado entre 0 y 1)
-progreso = [(plazo_dias - d) / plazo_dias for d in dias_atraso]
-progreso = [max(0, min(1, p)) for p in progreso]
-
-# DataFrame
+# Crear DataFrame con mismo progreso
 df = pd.DataFrame({
     "Nombre": nombres,
-    "Días de atraso": dias_atraso,
-    "Progreso": progreso
+    "Progreso": [progreso_general] * len(nombres)
 })
 
-# Título
+# Títulos y fechas
 st.title("Mandes")
-
-# Hora y fecha
-st.write(f"🕒 Fecha y hora actual: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+st.write(f"🕒 Fecha y hora actual: {hoy.strftime('%Y-%m-%d %H:%M:%S')}")
 st.write(f"📅 Fecha límite para cumplir: {fecha_limite.strftime('%Y-%m-%d')}")
+
+# Cuenta regresiva con alerta visual
+if dias_restantes > 10:
+    st.success(f"🟢 Quedan {dias_restantes} días para cumplir el objetivo.")
+elif 5 < dias_restantes <= 10:
+    st.warning(f"🟠 Atención: Quedan solo {dias_restantes} días.")
+elif 0 < dias_restantes <= 5:
+    st.error(f"🔴 ¡Urgente! Quedan solamente {dias_restantes} días.")
+else:
+    st.error("⛔ La fecha límite ya ha pasado.")
 
 # Gráfico
 fig = px.bar(
@@ -51,21 +57,22 @@ fig = px.bar(
     x="Progreso",
     orientation="h",
     color="Progreso",
-    color_continuous_scale=["red", "green"],
+    color_continuous_scale=["lightgreen", "yellow", "orange", "red"],
     range_x=[0, 1],
-    text=df["Progreso"].apply(lambda x: f"{int(x*100)} %")
+    text=df["Progreso"].apply(lambda x: f"{int(x * 100)} %")
 )
 
 fig.update_traces(
     textposition="inside",
     insidetextanchor="middle",
-    textfont_color="white"
+    textfont_color="black"
 )
+
 fig.update_layout(
     coloraxis_colorbar=dict(title="Progreso %"),
     yaxis=dict(autorange="reversed"),
-    plot_bgcolor="#e6f2ff",  # fondo del gráfico
-    paper_bgcolor="#e6f2ff",  # fondo general
+    plot_bgcolor="#e6f2ff",
+    paper_bgcolor="#e6f2ff",
     margin=dict(l=150, r=40, t=40, b=40)
 )
 
