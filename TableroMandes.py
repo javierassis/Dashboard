@@ -52,5 +52,6 @@ for persona in personas:
     color = "green" if cumplido else "red"
 
     st.write(f"**{persona}** ({dias_info})")
-    st.progress(progreso_barra /_
+    st.progress(progreso_barra / 100)
+
 
