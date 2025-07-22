@@ -18,7 +18,7 @@ fecha_limite = datetime(2025, 9, 5)
 hoy = datetime.now()
 dias_totales = (fecha_limite - inicio).days + 1
 dias_transcurridos = (hoy - inicio).days + 1
-dias_transcurridos = max(1, min(dias_transcurridos, dias_totales))  # Mantener entre 1 y 45
+dias_transcurridos = max(1, min(dias_transcurridos, dias_totales))
 dias_restantes = (fecha_limite - hoy).days
 
 # Lista de personas
@@ -29,11 +29,15 @@ nombres = [
     "Yuli Ramon", "Laura", "Erick"
 ]
 
+# Porcentaje de avance
+progreso_porcentaje = round((dias_transcurridos / dias_totales) * 100)
+
 # Crear DataFrame
 df = pd.DataFrame({
     "Nombre": nombres,
-    "Día actual": [dias_transcurridos] * len(nombres),
-    "Texto": [f"Día {dias_transcurridos}" for _ in nombres]
+    "Días": [dias_transcurridos] * len(nombres),
+    "Porcentaje": [progreso_porcentaje] * len(nombres),
+    "Texto": [f"{dias_transcurridos} días | {progreso_porcentaje}%" for _ in nombres]
 })
 
 # Título
@@ -42,7 +46,7 @@ st.title("Mandes")
 # Fecha límite
 st.write(f"📅 Fecha límite para cumplir: {fecha_limite.strftime('%Y-%m-%d')}")
 
-# Alerta días restantes
+# Mensaje de progreso
 if dias_restantes > 10:
     st.success(f"🟢 Quedan {dias_restantes} días para cumplir el objetivo.")
 elif 5 < dias_restantes <= 10:
@@ -55,16 +59,16 @@ else:
 # Crear gráfico
 fig = px.bar(
     df,
+    x="Días",
     y="Nombre",
-    x="Día actual",
     orientation="h",
     text="Texto",
-    color="Día actual",
-    color_continuous_scale="RdYlGn_r",  # verde (día 1) → rojo (día 45)
-    range_x=[1, dias_totales],
+    color="Días",
+    color_continuous_scale="RdYlGn_r",
+    range_x=[0, dias_totales]
 )
 
-# Ajustes visuales
+# Estilo gráfico
 fig.update_traces(
     textposition="inside",
     insidetextanchor="start",
@@ -72,12 +76,15 @@ fig.update_traces(
 )
 
 fig.update_layout(
-    coloraxis_colorbar=dict(title="Día actual"),
-    yaxis=dict(autorange="reversed"),
+    height=700,
+    width=950,
     xaxis_title="Días transcurridos",
+    yaxis_title="Nombre",
+    yaxis=dict(autorange="reversed"),
     plot_bgcolor="#e6f2ff",
     paper_bgcolor="#e6f2ff",
-    margin=dict(l=150, r=40, t=40, b=40)
+    margin=dict(l=140, r=40, t=30, b=40),
+    coloraxis_colorbar=dict(title="Día actual")
 )
 
 # Mostrar gráfico
