@@ -1,63 +1,56 @@
 import streamlit as st
+import json
+import os
 from datetime import datetime, timedelta
-
-# Título
-st.title("🏁 Seguimiento de Metas - 45 días")
 
 # Lista de personas
 personas = [
-    "Maite", "Miguel I.", "Katia", "Sebastian", "Walter",
-    "Gabriela", "Nemesys", "Miguel G", "Julián",
-    "Deivis 1", "Deivis 2", "Marcos", "Cristian Estupiñan",
-    "Ermes", "Maria Judith", "Yuli Ramon", "Laura", "Erick"
+    "Maite", "Miguel I.", "Katia", "Sebastian", "Walter", "Gabriela", "Nemesys", "Miguel G", "Julián",
+    "Deivis 1", "Deivis 2", "Marcos", "Cristian Estupiñan", "Ermes", "Maria Judith", "Yuli Ramon", "Laura", "Erick"
 ]
 
-# Estado inicial (guardar en sesión para mantener)
-if "cumplidos" not in st.session_state:
-    st.session_state.cumplidos = {persona: False for persona in personas}
-if "inicio" not in st.session_state:
-    st.session_state.inicio = datetime.today()
+# Archivo donde se guarda el progreso
+archivo_progreso = "progreso.json"
 
-# Mostrar lista con checkboxes
-st.subheader("✅ Marcar quien ha cumplido:")
-for persona in personas:
-    st.session_state.cumplidos[persona] = st.checkbox(persona, st.session_state.cumplidos[persona])
+# Fecha límite para cada persona (puedes personalizar)
+fecha_inicio = datetime(2024, 6, 1)
+dias_maximos = 45
+fecha_limite = fecha_inicio + timedelta(days=dias_maximos)
 
-# Calcular porcentaje de cumplimiento
-total = len(personas)
-cumplidos = sum(1 for cumplido in st.session_state.cumplidos.values() if cumplido)
-porcentaje = cumplidos / total
-
-# Calcular días transcurridos y ritmo esperado
-dias_transcurridos = (datetime.today() - st.session_state.inicio).days
-dias_totales = 45
-ritmo_esperado = dias_transcurridos / dias_totales
-
-# Elegir color de la barra
-if porcentaje >= ritmo_esperado:
-    color = "green"
+# Inicializar datos si no existe
+if not os.path.exists(archivo_progreso):
+    progreso = {persona: {"cumplido": False, "fecha": None} for persona in personas}
+    with open(archivo_progreso, "w") as f:
+        json.dump(progreso, f)
 else:
-    color = "red"
+    with open(archivo_progreso, "r") as f:
+        progreso = json.load(f)
 
-# Mostrar barra de progreso
-st.markdown(f"### Progreso: {cumplidos} de {total} ({porcentaje:.0%})")
-st.markdown(
-    f"""
-    <div style='background-color: lightgray; border-radius: 5px; overflow: hidden;'>
-        <div style='width: {porcentaje*100}%; background-color: {color}; padding: 10px; color: white; text-align: center;'>
-            {porcentaje:.0%}
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# Título
+st.title("📊 Tablero de Progreso por Persona")
 
-# Mostrar fecha de inicio y días transcurridos
-st.caption(f"📅 Día {dias_transcurridos} de 45")
+# Mostrar fecha y hora actual
+ahora = datetime.now()
+st.write("🕒 Fecha y hora actual:", ahora.strftime("%Y-%m-%d %H:%M:%S"))
+st.write("🎯 Fecha límite para cumplir:", fecha_limite.strftime("%Y-%m-%d"))
 
-# Botón para reiniciar
-if st.button("🔄 Reiniciar progreso"):
-    for persona in personas:
-        st.session_state.cumplidos[persona] = False
-    st.session_state.inicio = datetime.today()
-    st.experimental_rerun()
+# Mostrar progreso con barras
+for persona in personas:
+    datos = progreso.get(persona, {"cumplido": False, "fecha": None})
+    cumplido = datos["cumplido"]
+
+    # Días restantes o de atraso
+    if datos["fecha"]:
+        fecha_cumplimiento = datetime.strptime(datos["fecha"], "%Y-%m-%d %H:%M:%S")
+        delta = (fecha_cumplimiento - fecha_inicio).days
+        dias_info = f"Cumplido en {delta} días"
+    else:
+        dias_resto = (fecha_limite - ahora).days
+        dias_info = f"⏳ Quedan {dias_resto} días" if dias_resto >= 0 else f"❌ {abs(dias_resto)} días de atraso"
+
+    progreso_barra = 100 if cumplido else 0
+    color = "green" if cumplido else "red"
+
+    st.write(f"**{persona}** ({dias_info})")
+    st.progress(progreso_barra /_
+
