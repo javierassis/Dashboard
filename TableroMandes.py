@@ -2,8 +2,16 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
+import json
+import os
+import requests
 
-# Estilo de fondo
+# Configuración general
+REPO_URL = "https://raw.githubusercontent.com/javierassis/Dashboard/main/estado_cumplido.json"
+ARCHIVO_LOCAL = "estado_cumplido.json"
+LOCAL = os.path.exists(ARCHIVO_LOCAL)
+
+# --- Estilo de fondo ---
 st.markdown("""
     <style>
     .stApp {
@@ -12,16 +20,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Fechas
+# --- Fechas ---
 inicio = datetime(2025, 7, 22)
 fecha_limite = datetime(2025, 9, 5)
 hoy = datetime.now()
 dias_totales = (fecha_limite - inicio).days + 1
-dias_transcurridos = (hoy - inicio).days + 1
-dias_transcurridos = max(1, min(dias_transcurridos, dias_totales))
+dias_transcurridos = max(1, min((hoy - inicio).days + 1, dias_totales))
 dias_restantes = (fecha_limite - hoy).days
 
-# Lista de personas
+# --- Lista de personas ---
 nombres = [
     "Maite", "Miguel I.", "Katia", "Sebastian", "Walter",
     "Gabriela", "Nemesys", "Miguel G", "Julián", "Deivis x 2",
@@ -29,24 +36,58 @@ nombres = [
     "Yuli Ramon", "Laura", "Erick"
 ]
 
-# Porcentaje de avance
-progreso_porcentaje = round((dias_transcurridos / dias_totales) * 100)
+# --- Cargar estado cumplido ---
+try:
+    if LOCAL:
+        with open(ARCHIVO_LOCAL, "r") as f:
+            cumplidos = json.load(f)
+    else:
+        response = requests.get(REPO_URL)
+        cumplidos = response.json()
+except:
+    cumplidos = {}
 
-# Crear DataFrame
+# --- Interfaz para marcar cumplidos (solo en local) ---
+if LOCAL:
+    st.sidebar.header("✅ Marcar como cumplido")
+    for nombre in nombres:
+        if nombre not in cumplidos and dias_transcurridos >= dias_totales:
+            if st.sidebar.button(f"Marcar '{nombre}' como cumplido"):
+                cumplidos[nombre] = True
+                with open(ARCHIVO_LOCAL, "w") as f:
+                    json.dump(cumplidos, f)
+                st.experimental_rerun()
+
+# --- Crear DataFrame ---
+dias_personales = []
+colores = []
+textos = []
+
+for nombre in nombres:
+    if nombre in cumplidos:
+        dias = dias_totales
+        color = "lightgreen"
+        texto = "✅ Cumplido"
+    else:
+        dias = dias_transcurridos
+        color = "lightblue"
+        texto = f"{dias} días | {round((dias / dias_totales) * 100)}%"
+    dias_personales.append(dias)
+    colores.append(color)
+    textos.append(texto)
+
 df = pd.DataFrame({
     "Nombre": nombres,
-    "Días": [dias_transcurridos] * len(nombres),
-    "Porcentaje": [progreso_porcentaje] * len(nombres),
-    "Texto": [f"{dias_transcurridos} días | {progreso_porcentaje}%" for _ in nombres]
+    "Días": dias_personales,
+    "Color": colores,
+    "Texto": textos
 })
 
-# Título
-st.title("Mandes")
+# --- Mostrar información ---
+st.title("Mandes - Seguimiento de Avance")
+st.write(f"📅 Fecha límite: {fecha_limite.strftime('%Y-%m-%d')}")
+st.write(f"📆 Hoy: {hoy.strftime('%Y-%m-%d')} | Día {dias_transcurridos} de {dias_totales}")
 
-# Fecha límite
-st.write(f"📅 Fecha límite para cumplir: {fecha_limite.strftime('%Y-%m-%d')}")
-
-# Mensaje de progreso
 if dias_restantes > 10:
     st.success(f"🟢 Quedan {dias_restantes} días para cumplir el objetivo.")
 elif 5 < dias_restantes <= 10:
@@ -56,23 +97,23 @@ elif 0 < dias_restantes <= 5:
 else:
     st.error("⛔ La fecha límite ya ha pasado.")
 
-# Crear gráfico
+# --- Crear gráfico ---
 fig = px.bar(
     df,
     x="Días",
     y="Nombre",
     orientation="h",
     text="Texto",
-    color="Días",
-    color_continuous_scale="RdYlGn_r",
+    color="Color",
+    color_discrete_map="identity",
     range_x=[0, dias_totales]
 )
 
-# Estilo gráfico
 fig.update_traces(
     textposition="inside",
     insidetextanchor="start",
-    textfont_color="black"
+    textfont_color="black",
+    textfont_size=14
 )
 
 fig.update_layout(
@@ -84,9 +125,16 @@ fig.update_layout(
     plot_bgcolor="#e6f2ff",
     paper_bgcolor="#e6f2ff",
     margin=dict(l=140, r=40, t=30, b=40),
-    coloraxis_colorbar=dict(title="Día actual")
+    coloraxis_showscale=False
 )
 
-# Mostrar gráfico
-st.plotly_chart(fig, use_container_width=True)
+fig.add_vline(
+    x=dias_totales,
+    line_width=2,
+    line_dash="dash",
+    line_color="black",
+    annotation_text="Meta",
+    annotation_position="top right"
+)
 
+st.plotly_chart(fig, use_container_width=True)
