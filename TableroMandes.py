@@ -80,7 +80,7 @@ fig.add_trace(go.Bar(
     marker=dict(color=df["Días"], colorscale="RdYlGn_r"),
     textposition="inside",
     insidetextanchor="start",
-    textfont=dict(color="black"),
+    textfont=dict(color="black", size=16),  # Tamaño del texto ampliado
     name="Progreso"
 ))
 
