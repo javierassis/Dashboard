@@ -1,56 +1,91 @@
 import streamlit as st
-import datetime
-import plotly.graph_objects as go
-import json
+import pandas as pd
+import plotly.express as px
+from datetime import datetime
 
-st.set_page_config(layout="wide")
+# Estilo de fondo
+st.markdown("""
+    <style>
+    .stApp {
+        background-color: #e6f2ff;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-nombres = ["Maite", "Miguel I.", "Katia", "Walter", "Gabriela", "Nemesys",
-           "Miguel G", "Julián", "Marcos", "Ermes", "Maria judith", "Yuli Ramon",
-           "Laura", "Erick", "Sebastian", "Deivis x 2", "ian estupiñan"]
+# Fechas
+inicio = datetime(2025, 7, 22)
+fecha_limite = datetime(2025, 9, 5)
+hoy = datetime.now()
+dias_totales = (fecha_limite - inicio).days + 1
+dias_transcurridos = (hoy - inicio).days + 1
+dias_transcurridos = max(1, min(dias_transcurridos, dias_totales))
+dias_restantes = (fecha_limite - hoy).days
 
-fecha_objetivo = datetime.datetime(2024, 9, 5)
-fecha_actual = datetime.datetime.now()
-dias_restantes = (fecha_objetivo - fecha_actual).days
-progreso = (1 - dias_restantes / 45) * 100
-progreso = max(0, min(progreso, 100))  # Limita el progreso entre 0 y 100
+# Lista de personas
+nombres = [
+    "Maite", "Miguel I.", "Katia", "Sebastian", "Walter",
+    "Gabriela", "Nemesys", "Miguel G", "Julián", "Deivis x 2",
+    "Marcos", "Cristian estupiñan", "Ermes", "Maria judith",
+    "Yuli Ramon", "Laura", "Erick"
+]
 
-with open("estado_cumplido.json", "r", encoding="utf-8") as f:
-    estado_cumplido = json.load(f)
+# Porcentaje de avance
+progreso_porcentaje = round((dias_transcurridos / dias_totales) * 100)
 
-fig = go.Figure()
+# Crear DataFrame
+df = pd.DataFrame({
+    "Nombre": nombres,
+    "Días": [dias_transcurridos] * len(nombres),
+    "Porcentaje": [progreso_porcentaje] * len(nombres),
+    "Texto": [f"{dias_transcurridos} días | {progreso_porcentaje}%" for _ in nombres]
+})
 
-for nombre in nombres:
-    cumplido = estado_cumplido.get(nombre, {}).get("cumplido", False)
+# Título
+st.title("Mandes")
 
-    if cumplido:
-        dias = 45
-        texto = "✅ Cumplido"
-        color = "lightgreen"
-    else:
-        dias = 45 - dias_restantes
-        texto = f"{dias} días | {progreso:.0f}%"
-        color = "skyblue"
+# Fecha límite
+st.write(f"📅 Fecha límite para cumplir: {fecha_limite.strftime('%Y-%m-%d')}")
 
-    fig.add_trace(go.Bar(
-        y=[nombre],
-        x=[dias],
-        orientation='h',
-        name=nombre,
-        marker=dict(color=color),
-        hovertemplate=f"<b>{nombre}</b><br>{texto}<extra></extra>",
-        text=[texto],
-        textposition='inside'
-    ))
+# Mensaje de progreso
+if dias_restantes > 10:
+    st.success(f"🟢 Quedan {dias_restantes} días para cumplir el objetivo.")
+elif 5 < dias_restantes <= 10:
+    st.warning(f"🟠 Atención: Quedan solo {dias_restantes} días.")
+elif 0 < dias_restantes <= 5:
+    st.error(f"🔴 ¡Urgente! Quedan solamente {dias_restantes} días.")
+else:
+    st.error("⛔ La fecha límite ya ha pasado.")
 
-fig.update_layout(
-    title="Progreso por Persona hacia el 5 de septiembre",
-    xaxis_title="Días",
-    yaxis_title="",
-    xaxis=dict(range=[0, 45]),
-    barmode='stack',
-    height=800,
-    margin=dict(l=200, r=20, t=50, b=20)
+# Crear gráfico
+fig = px.bar(
+    df,
+    x="Días",
+    y="Nombre",
+    orientation="h",
+    text="Texto",
+    color="Días",
+    color_continuous_scale="RdYlGn_r",
+    range_x=[0, dias_totales]
 )
 
+# Estilo gráfico
+fig.update_traces(
+    textposition="inside",
+    insidetextanchor="start",
+    textfont_color="black"
+)
+
+fig.update_layout(
+    height=700,
+    width=950,
+    xaxis_title="Días transcurridos",
+    yaxis_title="Nombre",
+    yaxis=dict(autorange="reversed"),
+    plot_bgcolor="#e6f2ff",
+    paper_bgcolor="#e6f2ff",
+    margin=dict(l=140, r=40, t=30, b=40),
+    coloraxis_colorbar=dict(title="Día actual")
+)
+
+# Mostrar gráfico
 st.plotly_chart(fig, use_container_width=True)
