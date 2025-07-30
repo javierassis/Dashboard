@@ -26,10 +26,10 @@ dias_restantes = (fecha_limite - hoy).days
 
 # Lista de personas
 nombres = [
-    "Maite", "Miguel I.", "Katia", "Sebastian", "Walter",
+    "Maite", "Sebastian", "Walter",
     "Gabriela", "Nemesys", "Miguel G", "Julián", "Deivis x 2",
     "Marcos", "Cristian estupiñan", "Ermes", "Maria judith",
-    "Yuli Ramon", "Laura", "Erick"
+    "Laura", "Erick"
 ]
 
 # Porcentaje de avance
